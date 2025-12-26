@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pelanggan Internet</title>
+    <!-- Menggunakan Tailwind CSS untuk styling cepat & responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .loader { border-top-color: #3498db; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="pb-10">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 p-4 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center text-white">
+            <h1 class="text-xl font-bold">📡 Admin Internet</h1>
+            <button onclick="toggleForm()" class="bg-white text-blue-600 px-4 py-2 rounded-full font-semibold text-sm hover:bg-gray-100 transition">
+                + Tambah Baru
+            </button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 mt-6 max-w-3xl">
+        
+        <!-- Form Input Data (Hidden by default) -->
+        <div id="inputForm" class="hidden bg-white p-6 rounded-xl shadow-md mb-6 border border-gray-200">
+            <h2 class="text-lg font-bold mb-4 text-gray-700">📝 Input Data Pelanggan</h2>
+            <form id="customerForm" class="space-y-4">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Nama Customer</label>
+                    <input type="text" name="Nama Customer" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">No HP (Format: 628xxx)</label>
+                    <input type="number" name="No HP" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
+                    <textarea name="Alamat" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tanggal Pasang</label>
+                        <input type="date" name="Tanggal Pasang" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tagihan Next</label>
+                        <input type="date" name="Tanggal Tagihan Next" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Biaya Langganan (Rp)</label>
+                    <input type="number" name="Biaya Langganan" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" id="btnSubmit" class="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-medium">Simpan Data</button>
+                    <button type="button" onclick="toggleForm()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50">Batal</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mb-4">
+            <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Cari nama pelanggan..." class="w-full p-3 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="flex justify-center my-10">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10"></div>
+        </div>
+
+        <!-- Daftar Kartu Pelanggan -->
+        <div id="customerList" class="space-y-4">
+            <!-- Data akan muncul di sini -->
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // === GANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ===
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWt0iu0bdtwodaI74zan1m_F-X43a1avPJURAV_w69oZQyKfLkE8GhPAf_qXtr49zLOg/exec'; 
+
+        const form = document.forms['customerForm'];
+        const listContainer = document.getElementById('customerList');
+        const loading = document.getElementById('loading');
+        let customersData = [];
+
+        // Toggle Form
+        function toggleForm() {
+            document.getElementById('inputForm').classList.toggle('hidden');
+        }
+
+        // Format Tanggal agar enak dibaca
+        function formatDate(dateString) {
+            if(!dateString) return "-";
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        // Format Rupiah
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(angka);
+        }
+
+        // Load Data saat Web dibuka
+        window.addEventListener('load', loadData);
+
+        function loadData() {
+            loading.classList.remove('hidden');
+            listContainer.innerHTML = '';
+            
+            fetch(SCRIPT_URL)
+            .then(response => response.json())
+            .then(json => {
+                customersData = json.data;
+                renderData(customersData);
+                loading.classList.add('hidden');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Gagal mengambil data.");
+                loading.classList.add('hidden');
+            });
+        }
+
+        // Render Data ke HTML (Card Style)
+        function renderData(data) {
+            listContainer.innerHTML = '';
+            // Balik urutan agar data terbaru di atas
+            data.slice().reverse().forEach(cust => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition";
+                
+                // Cek status tagihan (sederhana: warning jika lewat hari ini)
+                const nextBill = new Date(cust['Tanggal Tagihan Next']);
+                const today = new Date();
+                const isLate = nextBill < today;
+                const statusColor = isLate ? "text-red-600 bg-red-50" : "text-green-600 bg-green-50";
+                const statusText = isLate ? "Jatuh Tempo" : "Aktif";
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">${cust['Nama Customer']}</h3>
+                            <p class="text-sm text-gray-500">${cust['Alamat']}</p>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-lg font-medium ${statusColor}">${statusText}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 mt-3">
+                        <div>
+                            <p class="text-xs text-gray-400">Langganan</p>
+                            <p class="font-medium">${formatRupiah(cust['Biaya Langganan'])}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Tagihan Selanjutnya</p>
+                            <p class="font-medium ${isLate ? 'text-red-500 font-bold' : ''}">${formatDate(cust['Tanggal Tagihan Next'])}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                        <span class="text-xs text-gray-400">Pasang: ${formatDate(cust['Tanggal Pasang'])}</span>
+                        <a href="https://wa.me/${cust['No HP']}" target="_blank" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 hover:bg-green-600">
+                            <i class="fa fa-whatsapp"></i> Chat WA
+                        </a>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // Submit Form Data
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmit');
+            btn.innerHTML = 'Menyimpan...';
+            btn.disabled = true;
+
+            fetch(SCRIPT_URL, { method: 'POST', body: new FormData(form)})
+            .then(response => {
+                alert("Data berhasil disimpan!");
+                form.reset();
+                toggleForm();
+                loadData(); // Refresh data
+            })
+            .catch(error => {
+                console.error('Error!', error.message);
+                alert("Gagal menyimpan data.");
+            })
+            .finally(() => {
+                btn.innerHTML = 'Simpan Data';
+                btn.disabled = false;
+            });
+        });
+
+        // Search Function
+        function searchData() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = customersData.filter(cust => 
+                cust['Nama Customer'].toLowerCase().includes(input) || 
+                cust['Alamat'].toLowerCase().includes(input)
+            );
+            renderData(filtered);
+        }
+    </script>
+</body>
+</html>
