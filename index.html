@@ -3,217 +3,508 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pelanggan Internet</title>
-    <!-- Menggunakan Tailwind CSS untuk styling cepat & responsif -->
+    <title>Aplikasi Tagihan Internet</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome untuk Ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .loader { border-top-color: #3498db; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .hidden { display: none !important; }
+        /* Smooth fade in */
+        .fade-in { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
-<body class="pb-10">
+<body class="text-slate-800">
 
-    <!-- Navbar -->
-    <nav class="bg-blue-600 p-4 shadow-lg sticky top-0 z-50">
-        <div class="container mx-auto flex justify-between items-center text-white">
-            <h1 class="text-xl font-bold">📡 Admin Internet</h1>
-            <button onclick="toggleForm()" class="bg-white text-blue-600 px-4 py-2 rounded-full font-semibold text-sm hover:bg-gray-100 transition">
-                + Tambah Baru
-            </button>
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-6">
+                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-wifi text-2xl text-blue-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">Login Admin</h2>
+                <p class="text-slate-500 text-sm">Masukkan password untuk mengakses data.</p>
+            </div>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <input type="password" id="passwordInput" placeholder="Password..." class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="rememberMe" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                    <label for="rememberMe" class="ml-2 text-sm text-gray-600">Ingat Saya</label>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30">
+                    Masuk Aplikasi
+                </button>
+            </form>
         </div>
-    </nav>
+    </div>
 
-    <div class="container mx-auto px-4 mt-6 max-w-3xl">
+    <!-- ==================== MAIN APP ==================== -->
+    <div id="mainApp" class="hidden fade-in pb-20">
         
-        <!-- Form Input Data (Hidden by default) -->
-        <div id="inputForm" class="hidden bg-white p-6 rounded-xl shadow-md mb-6 border border-gray-200">
-            <h2 class="text-lg font-bold mb-4 text-gray-700">📝 Input Data Pelanggan</h2>
+        <!-- Navbar -->
+        <nav class="bg-white shadow-md sticky top-0 z-40">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-wifi text-blue-600 text-xl"></i>
+                    <h1 class="text-lg font-bold text-slate-800">NetManager</h1>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openProfile()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i class="fas fa-user-cog"></i>
+                    </button>
+                    <button onclick="logout()" class="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filter & Sort Bar -->
+            <div class="border-t border-slate-100 bg-slate-50 px-4 py-2 overflow-x-auto whitespace-nowrap">
+                <div class="container mx-auto flex gap-2">
+                    <select id="sortOption" onchange="applySort()" class="text-sm border-none bg-white py-1.5 px-3 rounded-full shadow-sm text-slate-600 focus:ring-0 cursor-pointer">
+                        <option value="nearest">🕒 Jatuh Tempo Terdekat</option>
+                        <option value="farthest">📅 Jatuh Tempo Terjauh</option>
+                        <option value="name_asc">🔤 Nama (A-Z)</option>
+                        <option value="name_desc">🔤 Nama (Z-A)</option>
+                        <option value="date_new">🆕 Pasang Terbaru</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto px-4 mt-6 max-w-4xl">
+            
+            <!-- Search & Add -->
+            <div class="flex gap-3 mb-6">
+                <div class="relative flex-1">
+                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                    <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Cari nama / alamat..." class="w-full pl-10 pr-4 py-3 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <button onclick="openModal('add')" class="bg-blue-600 text-white px-4 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition flex items-center justify-center">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading" class="flex flex-col items-center justify-center py-12">
+                <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3"></div>
+                <p class="text-slate-400 text-sm">Mengambil data...</p>
+            </div>
+
+            <!-- Customer List -->
+            <div id="customerList" class="grid gap-4 md:grid-cols-2">
+                <!-- Cards injected here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12">
+                <i class="fas fa-inbox text-4xl text-slate-300 mb-3"></i>
+                <p class="text-slate-500">Data tidak ditemukan.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL FORM (ADD / EDIT) ==================== -->
+    <div id="formModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modalTitle" class="text-xl font-bold text-slate-800">Tambah Pelanggan</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
             <form id="customerForm" class="space-y-4">
+                <input type="hidden" name="action" id="formAction" value="add">
+                <input type="hidden" name="uuid" id="formUuid">
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Nama Customer</label>
-                    <input type="text" name="Nama Customer" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Nama Lengkap</label>
+                    <input type="text" name="Nama Customer" id="inpName" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">No HP (62...)</label>
+                        <input type="number" name="No HP" id="inpHp" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">Biaya (Rp)</label>
+                        <input type="number" name="Biaya Langganan" id="inpBiaya" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
+                    </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">No HP (Format: 628xxx)</label>
-                    <input type="number" name="No HP" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
-                    <textarea name="Alamat" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Alamat</label>
+                    <textarea name="Alamat" id="inpAlamat" rows="2" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1"></textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Tanggal Pasang</label>
-                        <input type="date" name="Tanggal Pasang" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Tgl Pasang</label>
+                        <input type="date" name="Tanggal Pasang" id="inpTglPasang" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Tagihan Next</label>
-                        <input type="date" name="Tanggal Tagihan Next" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Tgl Tagihan Next</label>
+                        <input type="date" name="Tanggal Tagihan Next" id="inpTglTagihan" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Biaya Langganan (Rp)</label>
-                    <input type="number" name="Biaya Langganan" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                </div>
-
-                <div class="flex gap-2 pt-2">
-                    <button type="submit" id="btnSubmit" class="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-medium">Simpan Data</button>
-                    <button type="button" onclick="toggleForm()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50">Batal</button>
-                </div>
+                <button type="submit" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition mt-4">
+                    Simpan Data
+                </button>
             </form>
         </div>
-
-        <!-- Search Bar -->
-        <div class="mb-4">
-            <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Cari nama pelanggan..." class="w-full p-3 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <!-- Loading Spinner -->
-        <div id="loading" class="flex justify-center my-10">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10"></div>
-        </div>
-
-        <!-- Daftar Kartu Pelanggan -->
-        <div id="customerList" class="space-y-4">
-            <!-- Data akan muncul di sini -->
-        </div>
-
     </div>
 
-    <!-- JAVASCRIPT -->
+    <!-- ==================== JAVASCRIPT LOGIC ==================== -->
     <script>
-        // === GANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ===
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWt0iu0bdtwodaI74zan1m_F-X43a1avPJURAV_w69oZQyKfLkE8GhPAf_qXtr49zLOg/exec'; 
+        // --- KONFIGURASI ---
+        // GANTI URL INI DENGAN URL APPS SCRIPT BARU ANDA
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxWt0iu0bdtwodaI74zan1m_F-X43a1avPJURAV_w69oZQyKfLkE8GhPAf_qXtr49zLOg/exec'; 
+        
+        // --- VARIABLES ---
+        let customers = [];
+        let userPassword = localStorage.getItem('app_password') || '';
+        
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if(userPassword) {
+                // Cek Validitas Password diam-diam (optional) atau langsung masuk
+                document.getElementById('passwordInput').value = userPassword;
+                attemptLogin(userPassword, true);
+            }
+        });
 
-        const form = document.forms['customerForm'];
-        const listContainer = document.getElementById('customerList');
-        const loading = document.getElementById('loading');
-        let customersData = [];
+        // --- AUTH SYSTEM ---
+        const loginForm = document.getElementById('loginForm');
+        
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('passwordInput').value;
+            const remember = document.getElementById('rememberMe').checked;
+            attemptLogin(pass, false, remember);
+        });
 
-        // Toggle Form
-        function toggleForm() {
-            document.getElementById('inputForm').classList.toggle('hidden');
-        }
-
-        // Format Tanggal agar enak dibaca
-        function formatDate(dateString) {
-            if(!dateString) return "-";
-            const date = new Date(dateString);
-            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-        }
-
-        // Format Rupiah
-        function formatRupiah(angka) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(angka);
-        }
-
-        // Load Data saat Web dibuka
-        window.addEventListener('load', loadData);
-
-        function loadData() {
-            loading.classList.remove('hidden');
-            listContainer.innerHTML = '';
+        function attemptLogin(password, isAuto = false, remember = false) {
+            if(!isAuto) showLoadingAlert("Memverifikasi...");
             
-            fetch(SCRIPT_URL)
-            .then(response => response.json())
-            .then(json => {
-                customersData = json.data;
-                renderData(customersData);
-                loading.classList.add('hidden');
+            // Kita hit endpoint dengan action 'login'
+            const formData = new FormData();
+            formData.append('action', 'login');
+            formData.append('passwordAuth', password);
+
+            fetch(API_URL, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if(data.result === 'success') {
+                    if(!isAuto) Swal.close();
+                    userPassword = password;
+                    if(remember) localStorage.setItem('app_password', password);
+                    
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    loadData();
+                } else {
+                    if(isAuto) {
+                        // Jika auto login gagal (misal pass diganti), logout
+                        logout();
+                    } else {
+                        Swal.fire('Gagal', 'Password Salah!', 'error');
+                    }
+                }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("Gagal mengambil data.");
-                loading.classList.add('hidden');
+            .catch(err => {
+                console.error(err);
+                Swal.fire('Error', 'Gagal koneksi server', 'error');
             });
         }
 
-        // Render Data ke HTML (Card Style)
-        function renderData(data) {
-            listContainer.innerHTML = '';
-            // Balik urutan agar data terbaru di atas
-            data.slice().reverse().forEach(cust => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition";
-                
-                // Cek status tagihan (sederhana: warning jika lewat hari ini)
+        function logout() {
+            localStorage.removeItem('app_password');
+            location.reload();
+        }
+
+        async function openProfile() {
+            const { value: newPass } = await Swal.fire({
+                title: 'Ganti Password',
+                input: 'text',
+                inputLabel: 'Masukkan Password Baru',
+                inputPlaceholder: 'Password baru...',
+                showCancelButton: true
+            });
+
+            if (newPass) {
+                showLoadingAlert("Mengupdate Password...");
+                const formData = new FormData();
+                formData.append('action', 'change_password');
+                formData.append('passwordAuth', userPassword);
+                formData.append('newPassword', newPass);
+
+                fetch(API_URL, { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.result === 'success') {
+                        userPassword = newPass;
+                        localStorage.setItem('app_password', newPass);
+                        Swal.fire('Sukses', 'Password berhasil diubah', 'success');
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                });
+            }
+        }
+
+        // --- DATA MANAGEMENT ---
+        function loadData() {
+            fetch(API_URL)
+            .then(res => res.json())
+            .then(json => {
+                customers = json.data;
+                document.getElementById('loading').classList.add('hidden');
+                applySort(); // Render pertama kali via sorting
+            });
+        }
+
+        function renderList(data) {
+            const container = document.getElementById('customerList');
+            const empty = document.getElementById('emptyState');
+            container.innerHTML = '';
+            
+            if(data.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            data.forEach(cust => {
+                // Kalkulasi Jatuh Tempo
                 const nextBill = new Date(cust['Tanggal Tagihan Next']);
                 const today = new Date();
-                const isLate = nextBill < today;
-                const statusColor = isLate ? "text-red-600 bg-red-50" : "text-green-600 bg-green-50";
-                const statusText = isLate ? "Jatuh Tempo" : "Aktif";
+                today.setHours(0,0,0,0);
+                nextBill.setHours(0,0,0,0);
+                
+                const diffTime = nextBill - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let badgeClass = "bg-green-100 text-green-700";
+                let statusText = `${diffDays} Hari Lagi`;
+                
+                if (diffDays < 0) {
+                    badgeClass = "bg-red-100 text-red-700 font-bold animate-pulse";
+                    statusText = `Telat ${Math.abs(diffDays)} Hari`;
+                } else if (diffDays === 0) {
+                    badgeClass = "bg-yellow-100 text-yellow-700 font-bold";
+                    statusText = "HARI INI";
+                }
 
+                // Format Rupiah
+                const biaya = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(cust['Biaya Langganan']);
+
+                // Template Card
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition relative group";
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-800">${cust['Nama Customer']}</h3>
-                            <p class="text-sm text-gray-500">${cust['Alamat']}</p>
+                            <h3 class="font-bold text-lg text-slate-800">${cust['Nama Customer']}</h3>
+                            <p class="text-xs text-slate-500 mb-2"><i class="fas fa-map-marker-alt mr-1"></i> ${cust['Alamat']}</p>
                         </div>
-                        <span class="text-xs px-2 py-1 rounded-lg font-medium ${statusColor}">${statusText}</span>
+                        <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg ${badgeClass}">${statusText}</span>
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 mt-3">
+
+                    <div class="flex justify-between items-end mt-4">
                         <div>
-                            <p class="text-xs text-gray-400">Langganan</p>
-                            <p class="font-medium">${formatRupiah(cust['Biaya Langganan'])}</p>
+                            <p class="text-xs text-slate-400">Tagihan</p>
+                            <p class="font-bold text-slate-700">${biaya}</p>
                         </div>
-                        <div>
-                            <p class="text-xs text-gray-400">Tagihan Selanjutnya</p>
-                            <p class="font-medium ${isLate ? 'text-red-500 font-bold' : ''}">${formatDate(cust['Tanggal Tagihan Next'])}</p>
+                         <div class="text-right">
+                            <p class="text-xs text-slate-400">Jatuh Tempo</p>
+                            <p class="font-medium text-slate-700">${formatDateIndo(cust['Tanggal Tagihan Next'])}</p>
                         </div>
                     </div>
 
-                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                        <span class="text-xs text-gray-400">Pasang: ${formatDate(cust['Tanggal Pasang'])}</span>
-                        <a href="https://wa.me/${cust['No HP']}" target="_blank" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 hover:bg-green-600">
-                            <i class="fa fa-whatsapp"></i> Chat WA
-                        </a>
+                    <!-- Action Buttons -->
+                    <div class="mt-5 pt-4 border-t border-dashed border-slate-200 grid grid-cols-4 gap-2">
+                        <!-- WA Button -->
+                        <button onclick="sendWA('${cust['No HP']}', '${cust['Nama Customer']}', '${cust['Biaya Langganan']}', '${cust['Tanggal Tagihan Next']}')" class="col-span-1 bg-green-50 text-green-600 rounded-lg py-2 hover:bg-green-100 transition flex flex-col items-center justify-center text-xs">
+                            <i class="fab fa-whatsapp text-lg mb-1"></i> Tagih
+                        </button>
+                        
+                        <!-- Edit Button -->
+                        <button onclick='editCustomer(${JSON.stringify(cust)})' class="col-span-1 bg-blue-50 text-blue-600 rounded-lg py-2 hover:bg-blue-100 transition flex flex-col items-center justify-center text-xs">
+                            <i class="fas fa-edit text-lg mb-1"></i> Edit
+                        </button>
+
+                        <!-- Pay Button (Span 2 col) -->
+                        <button onclick="markAsPaid('${cust['UUID']}', '${cust['Nama Customer']}')" class="col-span-2 bg-slate-800 text-white rounded-lg py-2 hover:bg-slate-900 transition flex items-center justify-center gap-2 text-xs font-bold shadow-lg shadow-slate-800/20">
+                            <i class="fas fa-check-circle"></i> Sudah Bayar
+                        </button>
                     </div>
                 `;
-                listContainer.appendChild(card);
+                container.appendChild(card);
             });
         }
 
-        // Submit Form Data
-        form.addEventListener('submit', e => {
+        // --- SORTING & FILTERING ---
+        function applySort() {
+            const option = document.getElementById('sortOption').value;
+            let sorted = [...customers]; // Copy array
+            
+            if(option === 'nearest') {
+                sorted.sort((a, b) => new Date(a['Tanggal Tagihan Next']) - new Date(b['Tanggal Tagihan Next']));
+            } else if (option === 'farthest') {
+                sorted.sort((a, b) => new Date(b['Tanggal Tagihan Next']) - new Date(a['Tanggal Tagihan Next']));
+            } else if (option === 'name_asc') {
+                sorted.sort((a, b) => a['Nama Customer'].localeCompare(b['Nama Customer']));
+            } else if (option === 'name_desc') {
+                sorted.sort((a, b) => b['Nama Customer'].localeCompare(a['Nama Customer']));
+            } else if (option === 'date_new') {
+                sorted.sort((a, b) => new Date(b['Tanggal Pasang']) - new Date(a['Tanggal Pasang']));
+            }
+            
+            // Apply Search Filter as well
+            searchData(sorted);
+        }
+
+        function searchData(sourceData = customers) {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = sourceData.filter(c => 
+                c['Nama Customer'].toLowerCase().includes(query) || 
+                c['Alamat'].toLowerCase().includes(query)
+            );
+            renderList(filtered);
+        }
+
+        // --- ACTIONS ---
+        function sendWA(hp, nama, biaya, tgl) {
+            // Bersihkan nomor HP (hapus 0 di depan jika ada, pastikan 62)
+            let phone = hp.toString().replace(/\D/g, ''); 
+            if(phone.startsWith('0')) phone = '62' + phone.slice(1);
+            
+            const biayaFmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(biaya);
+            const tglFmt = formatDateIndo(tgl);
+            
+            const text = `Halo Kak ${nama},%0A%0AKami dari Layanan Internet.%0AIni pengingat untuk tagihan internet bulan ini sebesar *${biayaFmt}*.%0AJatuh tempo pada tanggal: *${tglFmt}*.%0A%0AMohon segera melakukan pembayaran ya kak. Terima kasih! 🙏`;
+            
+            window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+        }
+
+        function markAsPaid(uuid, nama) {
+            Swal.fire({
+                title: 'Konfirmasi Bayar?',
+                text: `Apakah ${nama} sudah membayar? Tanggal jatuh tempo akan diperpanjang 1 bulan.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1e293b',
+                confirmButtonText: 'Ya, Sudah Bayar!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showLoadingAlert("Memproses pembayaran...");
+                    
+                    const formData = new FormData();
+                    formData.append('action', 'pay');
+                    formData.append('uuid', uuid);
+                    formData.append('passwordAuth', userPassword);
+
+                    fetch(API_URL, { method: 'POST', body: formData })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.result === 'success') {
+                            Swal.fire('Berhasil!', 'Jatuh tempo diperbarui.', 'success');
+                            loadData(); // Reload data
+                        } else {
+                            Swal.fire('Gagal', data.message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // --- FORM HANDLING (ADD & EDIT) ---
+        const modal = document.getElementById('formModal');
+        const form = document.getElementById('customerForm');
+
+        function openModal(mode) {
+            modal.classList.remove('hidden');
+            if(mode === 'add') {
+                document.getElementById('modalTitle').innerText = "Tambah Pelanggan";
+                document.getElementById('formAction').value = "add";
+                document.getElementById('formUuid').value = "";
+                form.reset();
+            }
+        }
+
+        function editCustomer(cust) {
+            modal.classList.remove('hidden');
+            document.getElementById('modalTitle').innerText = "Edit Data Pelanggan";
+            document.getElementById('formAction').value = "edit";
+            document.getElementById('formUuid').value = cust['UUID'];
+            
+            // Fill Data
+            document.getElementById('inpName').value = cust['Nama Customer'];
+            document.getElementById('inpHp').value = cust['No HP'];
+            document.getElementById('inpBiaya').value = cust['Biaya Langganan'];
+            document.getElementById('inpAlamat').value = cust['Alamat'];
+            document.getElementById('inpTglPasang').value = formatDateISO(cust['Tanggal Pasang']);
+            document.getElementById('inpTglTagihan').value = formatDateISO(cust['Tanggal Tagihan Next']);
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        form.addEventListener('submit', (e) => {
             e.preventDefault();
-            const btn = document.getElementById('btnSubmit');
-            btn.innerHTML = 'Menyimpan...';
+            const btn = document.getElementById('btnSave');
+            const originalText = btn.innerText;
+            btn.innerText = "Menyimpan...";
             btn.disabled = true;
 
-            fetch(SCRIPT_URL, { method: 'POST', body: new FormData(form)})
-            .then(response => {
-                alert("Data berhasil disimpan!");
-                form.reset();
-                toggleForm();
-                loadData(); // Refresh data
+            const formData = new FormData(form);
+            formData.append('passwordAuth', userPassword); // Sertakan password
+
+            fetch(API_URL, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if(data.result === 'success') {
+                    Swal.fire('Berhasil', data.message, 'success');
+                    closeModal();
+                    loadData();
+                } else {
+                    Swal.fire('Gagal', data.message, 'error');
+                }
             })
-            .catch(error => {
-                console.error('Error!', error.message);
-                alert("Gagal menyimpan data.");
-            })
+            .catch(() => Swal.fire('Error', 'Terjadi kesalahan jaringan', 'error'))
             .finally(() => {
-                btn.innerHTML = 'Simpan Data';
+                btn.innerText = originalText;
                 btn.disabled = false;
             });
         });
 
-        // Search Function
-        function searchData() {
-            const input = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = customersData.filter(cust => 
-                cust['Nama Customer'].toLowerCase().includes(input) || 
-                cust['Alamat'].toLowerCase().includes(input)
-            );
-            renderData(filtered);
+        // --- UTILS ---
+        function showLoadingAlert(msg) {
+            Swal.fire({
+                title: msg,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+        }
+
+        function formatDateIndo(dateStr) {
+            if(!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function formatDateISO(dateStr) {
+            if(!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toISOString().split('T')[0];
         }
     </script>
 </body>
