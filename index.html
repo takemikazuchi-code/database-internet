@@ -6,15 +6,18 @@
     <title>Aplikasi Tagihan Internet</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome untuk Ikon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         .hidden { display: none !important; }
-        /* Smooth fade in */
-        .fade-in { animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body class="text-slate-800">
@@ -45,136 +48,180 @@
     </div>
 
     <!-- ==================== MAIN APP ==================== -->
-    <div id="mainApp" class="hidden fade-in pb-20">
+    <div id="mainApp" class="hidden fade-in pb-24">
         
         <!-- Navbar -->
         <nav class="bg-white shadow-md sticky top-0 z-40">
             <div class="container mx-auto px-4 py-3 flex justify-between items-center">
                 <div class="flex items-center gap-2">
-                    <i class="fas fa-wifi text-blue-600 text-xl"></i>
-                    <h1 class="text-lg font-bold text-slate-800">NetManager</h1>
+                    <div class="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white">
+                        <i class="fas fa-wifi text-sm"></i>
+                    </div>
+                    <h1 class="text-lg font-bold text-slate-800 hidden sm:block">NetManager</h1>
                 </div>
-                <div class="flex gap-3">
-                    <button onclick="openProfile()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">
-                        <i class="fas fa-user-cog"></i>
+                <div class="flex gap-2">
+                    <button onclick="openMessageSettings()" class="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-600 hover:bg-green-100 transition" title="Template Pesan WA">
+                        <i class="fab fa-whatsapp"></i>
                     </button>
-                    <button onclick="logout()" class="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition">
+                    <button onclick="openProfile()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition" title="Ganti Password">
+                        <i class="fas fa-key"></i>
+                    </button>
+                    <button onclick="logout()" class="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition" title="Keluar">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             </div>
             
-            <!-- Filter & Sort Bar -->
-            <div class="border-t border-slate-100 bg-slate-50 px-4 py-2 overflow-x-auto whitespace-nowrap">
-                <div class="container mx-auto flex gap-2">
-                    <select id="sortOption" onchange="applySort()" class="text-sm border-none bg-white py-1.5 px-3 rounded-full shadow-sm text-slate-600 focus:ring-0 cursor-pointer">
-                        <option value="nearest">🕒 Jatuh Tempo Terdekat</option>
-                        <option value="farthest">📅 Jatuh Tempo Terjauh</option>
-                        <option value="name_asc">🔤 Nama (A-Z)</option>
-                        <option value="name_desc">🔤 Nama (Z-A)</option>
-                        <option value="date_new">🆕 Pasang Terbaru</option>
-                    </select>
+            <!-- Advanced Filter Bar -->
+            <div class="border-t border-slate-100 bg-slate-50 px-4 py-3">
+                <div class="container mx-auto flex flex-col sm:flex-row gap-3">
+                    <!-- Search -->
+                    <div class="relative flex-1">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
+                        <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Cari nama, alamat, no hp..." class="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="flex gap-2">
+                        <select id="filterCategory" onchange="applySort()" class="text-sm border border-slate-200 bg-white py-2 px-3 rounded-lg text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer flex-1 sm:flex-none">
+                            <option value="name">🔤 Nama</option>
+                            <option value="billDate" selected>📅 Jatuh Tempo</option>
+                            <option value="installDate">🛠️ Tgl Pasang</option>
+                            <option value="status">🔌 Status</option>
+                        </select>
+                        
+                        <select id="filterOrder" onchange="applySort()" class="text-sm border border-slate-200 bg-white py-2 px-3 rounded-lg text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+                            <option value="asc">⬆️ Kecil-Besar (A-Z)</option>
+                            <option value="desc">⬇️ Besar-Kecil (Z-A)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </nav>
 
-        <div class="container mx-auto px-4 mt-6 max-w-4xl">
-            
-            <!-- Search & Add -->
-            <div class="flex gap-3 mb-6">
-                <div class="relative flex-1">
-                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
-                    <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Cari nama / alamat..." class="w-full pl-10 pr-4 py-3 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <button onclick="openModal('add')" class="bg-blue-600 text-white px-4 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition flex items-center justify-center">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-
+        <div class="container mx-auto px-4 mt-6 max-w-5xl">
             <!-- Loading Spinner -->
             <div id="loading" class="flex flex-col items-center justify-center py-12">
                 <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3"></div>
-                <p class="text-slate-400 text-sm">Mengambil data...</p>
+                <p class="text-slate-400 text-sm">Sinkronisasi data...</p>
             </div>
 
             <!-- Customer List -->
-            <div id="customerList" class="grid gap-4 md:grid-cols-2">
+            <div id="customerList" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <!-- Cards injected here -->
             </div>
 
             <!-- Empty State -->
             <div id="emptyState" class="hidden text-center py-12">
-                <i class="fas fa-inbox text-4xl text-slate-300 mb-3"></i>
-                <p class="text-slate-500">Data tidak ditemukan.</p>
+                <div class="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-search text-3xl text-slate-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-600">Data tidak ditemukan</h3>
+                <p class="text-slate-400 text-sm">Coba kata kunci lain atau tambah pelanggan baru.</p>
+            </div>
+        </div>
+
+        <!-- Floating Add Button -->
+        <button onclick="openModal('add')" class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg shadow-blue-600/40 hover:bg-blue-700 transition flex items-center justify-center text-2xl z-40 group">
+            <i class="fas fa-plus group-hover:rotate-90 transition transform duration-300"></i>
+        </button>
+    </div>
+
+    <!-- ==================== MODAL FORM (ADD / EDIT) ==================== -->
+    <div id="formModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh] fade-in">
+            <div class="flex justify-between items-center p-5 border-b border-gray-100">
+                <h2 id="modalTitle" class="text-lg font-bold text-slate-800">Tambah Pelanggan</h2>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto">
+                <form id="customerForm" class="space-y-4">
+                    <input type="hidden" name="action" id="formAction" value="add">
+                    <input type="hidden" name="uuid" id="formUuid">
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label>
+                        <input type="text" name="Nama Customer" id="inpName" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">No HP</label>
+                            <input type="number" name="No HP" id="inpHp" required placeholder="62..." class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Biaya (Rp)</label>
+                            <input type="number" name="Biaya Langganan" id="inpBiaya" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat</label>
+                        <textarea name="Alamat" id="inpAlamat" rows="2" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tgl Pasang</label>
+                            <input type="date" name="Tanggal Pasang" id="inpTglPasang" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tgl Tagihan Next</label>
+                            <input type="date" name="Tanggal Tagihan Next" id="inpTglTagihan" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status Pelanggan</label>
+                        <select name="Status" id="inpStatus" class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer">
+                            <option value="Aktif">✅ Aktif</option>
+                            <option value="Non-Aktif">⛔ Non-Aktif (Putus)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition mt-2 shadow-lg shadow-blue-500/30">
+                        Simpan Data
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- ==================== MODAL FORM (ADD / EDIT) ==================== -->
-    <div id="formModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
-        <div class="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto slide-up">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="modalTitle" class="text-xl font-bold text-slate-800">Tambah Pelanggan</h2>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+    <!-- ==================== MESSAGE SETTINGS MODAL ==================== -->
+    <div id="msgSettingsModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800"><i class="fab fa-whatsapp text-green-500 mr-2"></i>Template Pesan WA</h3>
+                <button onclick="closeMsgSettings()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
             </div>
+            <p class="text-sm text-slate-500 mb-3">Atur format pesan penagihan otomatis Anda di sini.</p>
             
-            <form id="customerForm" class="space-y-4">
-                <input type="hidden" name="action" id="formAction" value="add">
-                <input type="hidden" name="uuid" id="formUuid">
-                
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase">Nama Lengkap</label>
-                    <input type="text" name="Nama Customer" id="inpName" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">No HP (62...)</label>
-                        <input type="number" name="No HP" id="inpHp" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">Biaya (Rp)</label>
-                        <input type="number" name="Biaya Langganan" id="inpBiaya" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
-                    </div>
-                </div>
+            <textarea id="waTemplateInput" rows="5" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none mb-3"></textarea>
+            
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button onclick="insertTag('[NAMA]')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded transition">+ Nama</button>
+                <button onclick="insertTag('[JUMLAH]')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded transition">+ Jumlah</button>
+                <button onclick="insertTag('[TEMPO]')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded transition">+ Jatuh Tempo</button>
+            </div>
 
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase">Alamat</label>
-                    <textarea name="Alamat" id="inpAlamat" rows="2" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1"></textarea>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">Tgl Pasang</label>
-                        <input type="date" name="Tanggal Pasang" id="inpTglPasang" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">Tgl Tagihan Next</label>
-                        <input type="date" name="Tanggal Tagihan Next" id="inpTglTagihan" required class="w-full p-3 bg-slate-50 rounded-lg border-none focus:ring-2 focus:ring-blue-500 mt-1">
-                    </div>
-                </div>
-
-                <button type="submit" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition mt-4">
-                    Simpan Data
-                </button>
-            </form>
+            <button onclick="saveWaTemplate()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl transition">Simpan Template</button>
         </div>
     </div>
 
     <!-- ==================== JAVASCRIPT LOGIC ==================== -->
     <script>
         // --- KONFIGURASI ---
-        // GANTI URL INI DENGAN URL APPS SCRIPT BARU ANDA
         const API_URL = 'https://script.google.com/macros/s/AKfycbxWt0iu0bdtwodaI74zan1m_F-X43a1avPJURAV_w69oZQyKfLkE8GhPAf_qXtr49zLOg/exec'; 
         
         // --- VARIABLES ---
         let customers = [];
         let userPassword = localStorage.getItem('app_password') || '';
-        
+        const defaultTemplate = "Halo Kak [NAMA],\n\nKami dari Layanan Internet.\nIni pengingat untuk tagihan bulan ini sebesar *[JUMLAH]*.\nJatuh tempo pada tanggal: *[TEMPO]*.\n\nMohon segera melakukan pembayaran ya kak. Terima kasih! 🙏";
+
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             if(userPassword) {
-                // Cek Validitas Password diam-diam (optional) atau langsung masuk
                 document.getElementById('passwordInput').value = userPassword;
                 attemptLogin(userPassword, true);
             }
@@ -182,7 +229,6 @@
 
         // --- AUTH SYSTEM ---
         const loginForm = document.getElementById('loginForm');
-        
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const pass = document.getElementById('passwordInput').value;
@@ -193,7 +239,6 @@
         function attemptLogin(password, isAuto = false, remember = false) {
             if(!isAuto) showLoadingAlert("Memverifikasi...");
             
-            // Kita hit endpoint dengan action 'login'
             const formData = new FormData();
             formData.append('action', 'login');
             formData.append('passwordAuth', password);
@@ -210,53 +255,19 @@
                     document.getElementById('mainApp').classList.remove('hidden');
                     loadData();
                 } else {
-                    if(isAuto) {
-                        // Jika auto login gagal (misal pass diganti), logout
-                        logout();
-                    } else {
-                        Swal.fire('Gagal', 'Password Salah!', 'error');
-                    }
+                    if(isAuto) logout();
+                    else Swal.fire('Gagal', 'Password Salah!', 'error');
                 }
             })
             .catch(err => {
                 console.error(err);
-                Swal.fire('Error', 'Gagal koneksi server', 'error');
+                if(!isAuto) Swal.fire('Error', 'Gagal koneksi server', 'error');
             });
         }
 
         function logout() {
             localStorage.removeItem('app_password');
             location.reload();
-        }
-
-        async function openProfile() {
-            const { value: newPass } = await Swal.fire({
-                title: 'Ganti Password',
-                input: 'text',
-                inputLabel: 'Masukkan Password Baru',
-                inputPlaceholder: 'Password baru...',
-                showCancelButton: true
-            });
-
-            if (newPass) {
-                showLoadingAlert("Mengupdate Password...");
-                const formData = new FormData();
-                formData.append('action', 'change_password');
-                formData.append('passwordAuth', userPassword);
-                formData.append('newPassword', newPass);
-
-                fetch(API_URL, { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.result === 'success') {
-                        userPassword = newPass;
-                        localStorage.setItem('app_password', newPass);
-                        Swal.fire('Sukses', 'Password berhasil diubah', 'success');
-                    } else {
-                        Swal.fire('Gagal', data.message, 'error');
-                    }
-                });
-            }
         }
 
         // --- DATA MANAGEMENT ---
@@ -266,7 +277,7 @@
             .then(json => {
                 customers = json.data;
                 document.getElementById('loading').classList.add('hidden');
-                applySort(); // Render pertama kali via sorting
+                applySort(); 
             });
         }
 
@@ -282,6 +293,10 @@
             empty.classList.add('hidden');
 
             data.forEach(cust => {
+                // Handling Status (Default Active if undefined)
+                const isActive = (cust['Status'] || 'Aktif') === 'Aktif';
+                const opacityClass = isActive ? '' : 'opacity-60 grayscale-[0.8]';
+
                 // Kalkulasi Jatuh Tempo
                 const nextBill = new Date(cust['Tanggal Tagihan Next']);
                 const today = new Date();
@@ -294,7 +309,10 @@
                 let badgeClass = "bg-green-100 text-green-700";
                 let statusText = `${diffDays} Hari Lagi`;
                 
-                if (diffDays < 0) {
+                if(!isActive) {
+                     badgeClass = "bg-gray-200 text-gray-600";
+                     statusText = "NON-AKTIF";
+                } else if (diffDays < 0) {
                     badgeClass = "bg-red-100 text-red-700 font-bold animate-pulse";
                     statusText = `Telat ${Math.abs(diffDays)} Hari`;
                 } else if (diffDays === 0) {
@@ -302,48 +320,78 @@
                     statusText = "HARI INI";
                 }
 
+                // Kalkulasi Lama Langganan
+                const durationStr = calculateDuration(cust['Tanggal Pasang']);
+                
                 // Format Rupiah
                 const biaya = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(cust['Biaya Langganan']);
 
                 // Template Card
                 const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition relative group";
+                card.className = `bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition relative group overflow-hidden ${opacityClass}`;
                 card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="font-bold text-lg text-slate-800">${cust['Nama Customer']}</h3>
-                            <p class="text-xs text-slate-500 mb-2"><i class="fas fa-map-marker-alt mr-1"></i> ${cust['Alamat']}</p>
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-800 leading-tight">${cust['Nama Customer']}</h3>
+                                <div class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                    <i class="fas fa-map-marker-alt"></i> ${cust['Alamat']}
+                                </div>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg font-bold ${badgeClass}">${statusText}</span>
                         </div>
-                        <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg ${badgeClass}">${statusText}</span>
-                    </div>
 
-                    <div class="flex justify-between items-end mt-4">
-                        <div>
-                            <p class="text-xs text-slate-400">Tagihan</p>
-                            <p class="font-bold text-slate-700">${biaya}</p>
+                        <div class="bg-slate-50 rounded-lg p-3 grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <p class="text-[10px] uppercase text-slate-400 font-bold">Tagihan</p>
+                                <p class="font-bold text-slate-700 text-sm">${biaya}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] uppercase text-slate-400 font-bold">Jatuh Tempo</p>
+                                <p class="font-bold text-slate-700 text-sm">${formatDateIndo(cust['Tanggal Tagihan Next'])}</p>
+                            </div>
+                            <div class="col-span-2 border-t border-slate-200 pt-2 flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] text-slate-400">Terpasang Sejak</p>
+                                    <p class="text-xs font-medium text-slate-600">${formatDateIndo(cust['Tanggal Pasang'])}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-slate-400">Durasi</p>
+                                    <p class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">${durationStr}</p>
+                                </div>
+                            </div>
                         </div>
-                         <div class="text-right">
-                            <p class="text-xs text-slate-400">Jatuh Tempo</p>
-                            <p class="font-medium text-slate-700">${formatDateIndo(cust['Tanggal Tagihan Next'])}</p>
+
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-4 gap-2">
+                            ${isActive ? `
+                            <button onclick="sendWA('${cust['No HP']}', '${cust['Nama Customer']}', '${cust['Biaya Langganan']}', '${cust['Tanggal Tagihan Next']}')" class="col-span-1 bg-green-50 text-green-600 rounded-lg py-2 hover:bg-green-600 hover:text-white transition flex flex-col items-center justify-center text-xs group/btn">
+                                <i class="fab fa-whatsapp text-lg mb-1"></i> <span class="text-[10px]">Tagih</span>
+                            </button>
+                            ` : `
+                            <button disabled class="col-span-1 bg-gray-100 text-gray-400 rounded-lg py-2 flex flex-col items-center justify-center text-xs cursor-not-allowed">
+                                <i class="fab fa-whatsapp text-lg mb-1"></i> <span class="text-[10px]">Tagih</span>
+                            </button>
+                            `}
+                            
+                            <button onclick='editCustomer(${JSON.stringify(cust)})' class="col-span-1 bg-blue-50 text-blue-600 rounded-lg py-2 hover:bg-blue-600 hover:text-white transition flex flex-col items-center justify-center text-xs">
+                                <i class="fas fa-edit text-lg mb-1"></i> <span class="text-[10px]">Edit</span>
+                            </button>
+
+                            <button onclick="deleteCustomer('${cust['UUID']}', '${cust['Nama Customer']}')" class="col-span-1 bg-red-50 text-red-500 rounded-lg py-2 hover:bg-red-500 hover:text-white transition flex flex-col items-center justify-center text-xs">
+                                <i class="fas fa-trash-alt text-lg mb-1"></i> <span class="text-[10px]">Hapus</span>
+                            </button>
+
+                            ${isActive ? `
+                            <button onclick="markAsPaid('${cust['UUID']}', '${cust['Nama Customer']}')" class="col-span-1 bg-slate-800 text-white rounded-lg py-2 hover:bg-slate-900 transition flex flex-col items-center justify-center text-xs shadow-lg shadow-slate-800/20">
+                                <i class="fas fa-check text-lg mb-1"></i> <span class="text-[10px]">Bayar</span>
+                            </button>
+                            ` : `
+                             <button disabled class="col-span-1 bg-gray-200 text-gray-400 rounded-lg py-2 flex flex-col items-center justify-center text-xs">
+                                <i class="fas fa-check text-lg mb-1"></i> <span class="text-[10px]">Bayar</span>
+                            </button>
+                            `}
                         </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="mt-5 pt-4 border-t border-dashed border-slate-200 grid grid-cols-4 gap-2">
-                        <!-- WA Button -->
-                        <button onclick="sendWA('${cust['No HP']}', '${cust['Nama Customer']}', '${cust['Biaya Langganan']}', '${cust['Tanggal Tagihan Next']}')" class="col-span-1 bg-green-50 text-green-600 rounded-lg py-2 hover:bg-green-100 transition flex flex-col items-center justify-center text-xs">
-                            <i class="fab fa-whatsapp text-lg mb-1"></i> Tagih
-                        </button>
-                        
-                        <!-- Edit Button -->
-                        <button onclick='editCustomer(${JSON.stringify(cust)})' class="col-span-1 bg-blue-50 text-blue-600 rounded-lg py-2 hover:bg-blue-100 transition flex flex-col items-center justify-center text-xs">
-                            <i class="fas fa-edit text-lg mb-1"></i> Edit
-                        </button>
-
-                        <!-- Pay Button (Span 2 col) -->
-                        <button onclick="markAsPaid('${cust['UUID']}', '${cust['Nama Customer']}')" class="col-span-2 bg-slate-800 text-white rounded-lg py-2 hover:bg-slate-900 transition flex items-center justify-center gap-2 text-xs font-bold shadow-lg shadow-slate-800/20">
-                            <i class="fas fa-check-circle"></i> Sudah Bayar
-                        </button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -352,22 +400,33 @@
 
         // --- SORTING & FILTERING ---
         function applySort() {
-            const option = document.getElementById('sortOption').value;
-            let sorted = [...customers]; // Copy array
+            const category = document.getElementById('filterCategory').value;
+            const order = document.getElementById('filterOrder').value; // asc or desc
             
-            if(option === 'nearest') {
-                sorted.sort((a, b) => new Date(a['Tanggal Tagihan Next']) - new Date(b['Tanggal Tagihan Next']));
-            } else if (option === 'farthest') {
-                sorted.sort((a, b) => new Date(b['Tanggal Tagihan Next']) - new Date(a['Tanggal Tagihan Next']));
-            } else if (option === 'name_asc') {
-                sorted.sort((a, b) => a['Nama Customer'].localeCompare(b['Nama Customer']));
-            } else if (option === 'name_desc') {
-                sorted.sort((a, b) => b['Nama Customer'].localeCompare(a['Nama Customer']));
-            } else if (option === 'date_new') {
-                sorted.sort((a, b) => new Date(b['Tanggal Pasang']) - new Date(a['Tanggal Pasang']));
-            }
+            let sorted = [...customers];
             
-            // Apply Search Filter as well
+            sorted.sort((a, b) => {
+                let valA, valB;
+
+                if (category === 'name') {
+                    valA = a['Nama Customer'].toLowerCase();
+                    valB = b['Nama Customer'].toLowerCase();
+                } else if (category === 'billDate') {
+                    valA = new Date(a['Tanggal Tagihan Next']);
+                    valB = new Date(b['Tanggal Tagihan Next']);
+                } else if (category === 'installDate') {
+                    valA = new Date(a['Tanggal Pasang']);
+                    valB = new Date(b['Tanggal Pasang']);
+                } else if (category === 'status') {
+                    valA = a['Status'] || 'Aktif';
+                    valB = b['Status'] || 'Aktif';
+                }
+
+                if (valA < valB) return order === 'asc' ? -1 : 1;
+                if (valA > valB) return order === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
             searchData(sorted);
         }
 
@@ -375,29 +434,117 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = sourceData.filter(c => 
                 c['Nama Customer'].toLowerCase().includes(query) || 
-                c['Alamat'].toLowerCase().includes(query)
+                c['Alamat'].toLowerCase().includes(query) ||
+                (c['No HP'] && c['No HP'].toString().includes(query))
             );
             renderList(filtered);
         }
 
         // --- ACTIONS ---
+        function calculateDuration(startDateStr) {
+            if(!startDateStr) return "-";
+            const start = new Date(startDateStr);
+            const now = new Date();
+            const diffTime = Math.abs(now - start);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+
+            if(diffDays < 30) return `${diffDays} Hari`;
+            
+            const months = Math.floor(diffDays / 30);
+            const days = diffDays % 30;
+            
+            if(months >= 12) {
+                const years = Math.floor(months / 12);
+                const remainingMonths = months % 12;
+                return `${years} Thn ${remainingMonths} Bln`;
+            }
+            
+            return `${months} Bln ${days} Hr`;
+        }
+
+        function deleteCustomer(uuid, nama) {
+            Swal.fire({
+                title: 'Hapus Pelanggan?',
+                text: `Anda yakin ingin menghapus data ${nama}? Data yang dihapus tidak bisa dikembalikan.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Ya, Hapus!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showLoadingAlert("Menghapus data...");
+                    const formData = new FormData();
+                    formData.append('action', 'delete');
+                    formData.append('uuid', uuid);
+                    formData.append('passwordAuth', userPassword);
+
+                    fetch(API_URL, { method: 'POST', body: formData })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.result === 'success') {
+                            Swal.fire('Terhapus!', 'Data pelanggan telah dihapus.', 'success');
+                            loadData();
+                        } else {
+                            Swal.fire('Gagal', data.message || 'Terjadi kesalahan script', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function openMessageSettings() {
+            const modal = document.getElementById('msgSettingsModal');
+            const textarea = document.getElementById('waTemplateInput');
+            textarea.value = localStorage.getItem('wa_template') || defaultTemplate;
+            modal.classList.remove('hidden');
+        }
+
+        function closeMsgSettings() {
+            document.getElementById('msgSettingsModal').classList.add('hidden');
+        }
+
+        function saveWaTemplate() {
+            const val = document.getElementById('waTemplateInput').value;
+            localStorage.setItem('wa_template', val);
+            Swal.fire('Tersimpan', 'Template pesan berhasil disimpan di perangkat ini.', 'success');
+            closeMsgSettings();
+        }
+
+        function insertTag(tag) {
+            const textarea = document.getElementById('waTemplateInput');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            const before = text.substring(0, start);
+            const after  = text.substring(end, text.length);
+            textarea.value = (before + tag + after);
+            textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+            textarea.focus();
+        }
+
         function sendWA(hp, nama, biaya, tgl) {
-            // Bersihkan nomor HP (hapus 0 di depan jika ada, pastikan 62)
             let phone = hp.toString().replace(/\D/g, ''); 
             if(phone.startsWith('0')) phone = '62' + phone.slice(1);
             
             const biayaFmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(biaya);
             const tglFmt = formatDateIndo(tgl);
             
-            const text = `Halo Kak ${nama},%0A%0AKami dari Layanan Internet.%0AIni pengingat untuk tagihan internet bulan ini sebesar *${biayaFmt}*.%0AJatuh tempo pada tanggal: *${tglFmt}*.%0A%0AMohon segera melakukan pembayaran ya kak. Terima kasih! 🙏`;
+            let template = localStorage.getItem('wa_template') || defaultTemplate;
             
-            window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+            // Replace placeholders
+            let message = template
+                .replace(/\[NAMA\]/g, nama)
+                .replace(/\[JUMLAH\]/g, biayaFmt)
+                .replace(/\[TEMPO\]/g, tglFmt);
+            
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
         function markAsPaid(uuid, nama) {
             Swal.fire({
                 title: 'Konfirmasi Bayar?',
-                text: `Apakah ${nama} sudah membayar? Tanggal jatuh tempo akan diperpanjang 1 bulan.`,
+                text: `Perpanjang tagihan ${nama} untuk 1 bulan ke depan?`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#1e293b',
@@ -405,7 +552,6 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     showLoadingAlert("Memproses pembayaran...");
-                    
                     const formData = new FormData();
                     formData.append('action', 'pay');
                     formData.append('uuid', uuid);
@@ -416,7 +562,7 @@
                     .then(data => {
                         if(data.result === 'success') {
                             Swal.fire('Berhasil!', 'Jatuh tempo diperbarui.', 'success');
-                            loadData(); // Reload data
+                            loadData();
                         } else {
                             Swal.fire('Gagal', data.message, 'error');
                         }
@@ -435,6 +581,7 @@
                 document.getElementById('modalTitle').innerText = "Tambah Pelanggan";
                 document.getElementById('formAction').value = "add";
                 document.getElementById('formUuid').value = "";
+                document.getElementById('inpStatus').value = "Aktif"; // Default Active
                 form.reset();
             }
         }
@@ -445,13 +592,13 @@
             document.getElementById('formAction').value = "edit";
             document.getElementById('formUuid').value = cust['UUID'];
             
-            // Fill Data
             document.getElementById('inpName').value = cust['Nama Customer'];
             document.getElementById('inpHp').value = cust['No HP'];
             document.getElementById('inpBiaya').value = cust['Biaya Langganan'];
             document.getElementById('inpAlamat').value = cust['Alamat'];
             document.getElementById('inpTglPasang').value = formatDateISO(cust['Tanggal Pasang']);
             document.getElementById('inpTglTagihan').value = formatDateISO(cust['Tanggal Tagihan Next']);
+            document.getElementById('inpStatus').value = cust['Status'] || 'Aktif';
         }
 
         function closeModal() {
@@ -466,7 +613,7 @@
             btn.disabled = true;
 
             const formData = new FormData(form);
-            formData.append('passwordAuth', userPassword); // Sertakan password
+            formData.append('passwordAuth', userPassword);
 
             fetch(API_URL, { method: 'POST', body: formData })
             .then(res => res.json())
@@ -486,13 +633,36 @@
             });
         });
 
-        // --- UTILS ---
+        // --- UTILS & PROFILE ---
         function showLoadingAlert(msg) {
-            Swal.fire({
-                title: msg,
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading() }
+            Swal.fire({ title: msg, allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+        }
+
+        async function openProfile() {
+            const { value: newPass } = await Swal.fire({
+                title: 'Ganti Password',
+                input: 'text',
+                inputLabel: 'Masukkan Password Baru',
+                showCancelButton: true
             });
+
+            if (newPass) {
+                showLoadingAlert("Mengupdate Password...");
+                const formData = new FormData();
+                formData.append('action', 'change_password');
+                formData.append('passwordAuth', userPassword);
+                formData.append('newPassword', newPass);
+
+                fetch(API_URL, { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.result === 'success') {
+                        userPassword = newPass;
+                        localStorage.setItem('app_password', newPass);
+                        Swal.fire('Sukses', 'Password berhasil diubah', 'success');
+                    } else Swal.fire('Gagal', data.message, 'error');
+                });
+            }
         }
 
         function formatDateIndo(dateStr) {
