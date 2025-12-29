@@ -196,8 +196,8 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat</label>
-                        <textarea name="Alamat" id="inpAlamat" rows="2" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"></textarea>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat (Bisa isi link GMap)</label>
+                        <textarea name="Alamat" id="inpAlamat" rows="2" required placeholder="Jl. Mawar No 5, Jakarta (https://maps.app.goo.gl/...)" class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -265,6 +265,7 @@
     <!-- ==================== JAVASCRIPT LOGIC ==================== -->
     <script>
         // --- KONFIGURASI ---
+        // PASTIKAN GANTI INI DENGAN LINK DEPLOYMENT ANDA SENDIRI
         const API_URL = 'https://script.google.com/macros/s/AKfycbxWt0iu0bdtwodaI74zan1m_F-X43a1avPJURAV_w69oZQyKfLkE8GhPAf_qXtr49zLOg/exec'; 
         
         // --- VARIABLES ---
@@ -380,19 +381,33 @@
 
                 const durationStr = calculateDuration(cust['Tanggal Pasang']);
                 const biaya = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(cust['Biaya Langganan']);
+                
+                // FORMAT ALAMAT: Deteksi Link dan ubah jadi tombol "Buka Map"
+                const addressRaw = cust['Alamat'] || "-";
+                // Regex untuk mencari URL (http/https/www/goo.gl)
+                const addressFormatted = addressRaw.replace(/(https?:\/\/[^\s]+|www\.[^\s]+|goo\.gl[^\s]+)/g, (url) => {
+                    let href = url;
+                    if (!href.startsWith('http')) href = 'https://' + href;
+                    return `<a href="${href}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md hover:bg-blue-100 font-semibold no-underline z-20 relative" onclick="event.stopPropagation()">
+                                <i class="fas fa-map-marked-alt text-xs"></i> Buka Map
+                            </a>`;
+                });
 
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition relative group overflow-hidden ${opacityClass}`;
                 card.innerHTML = `
                     <div class="p-5">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 class="font-bold text-lg text-slate-800 leading-tight">${cust['Nama Customer']}</h3>
-                                <div class="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                                    <i class="fas fa-map-marker-alt"></i> ${cust['Alamat']}
+                        <!-- HEADER CARD (Fixed Layout) -->
+                        <div class="flex justify-between items-start mb-3 gap-3">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="font-bold text-lg text-slate-800 leading-tight break-words">${cust['Nama Customer']}</h3>
+                                <div class="text-xs text-slate-500 mt-2 leading-relaxed break-words">
+                                    <i class="fas fa-map-marker-alt mr-1 text-slate-400"></i>
+                                    ${addressFormatted}
                                 </div>
                             </div>
-                            <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg font-bold ${badgeClass}">${statusText}</span>
+                            <!-- Badge with shrink-0 so it never collapses -->
+                            <span class="shrink-0 text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg font-bold whitespace-nowrap ${badgeClass}">${statusText}</span>
                         </div>
 
                         <div class="bg-slate-50 rounded-lg p-3 grid grid-cols-2 gap-3 mb-4">
@@ -428,7 +443,6 @@
                             </button>
                             `}
                             
-                            <!-- TOMBOL STRUK (UPDATED) -->
                              ${isActive ? `
                             <button onclick="sendReceipt('${cust['No HP']}', '${cust['Nama Customer']}', '${cust['Biaya Langganan']}')" class="col-span-1 bg-purple-50 text-purple-600 rounded-lg py-2 hover:bg-purple-600 hover:text-white transition flex flex-col items-center justify-center text-xs">
                                 <i class="fas fa-receipt text-lg mb-1"></i> <span class="text-[10px]">Struk</span>
