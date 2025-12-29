@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
+    <!-- Library untuk mengubah HTML menjadi Gambar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         .hidden { display: none !important; }
@@ -18,9 +20,54 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Receipt Styles (Hidden by default) */
+        #receipt-print-area {
+            position: fixed;
+            left: -9999px;
+            top: 0;
+            width: 350px;
+            background: #fff;
+            padding: 20px;
+            color: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .receipt-dashed { border-bottom: 2px dashed #000; margin: 10px 0; }
     </style>
 </head>
 <body class="text-slate-800">
+
+    <!-- ==================== HIDDEN RECEIPT TEMPLATE (FOR IMAGE GEN) ==================== -->
+    <div id="receipt-print-area">
+        <div class="text-center mb-4">
+            <h2 class="font-bold text-xl mb-1" style="white-space: pre-line;" id="r-header">NAMA BISNIS</h2>
+        </div>
+        <div class="receipt-dashed"></div>
+        <div class="flex justify-between text-sm mb-1">
+            <span>Tanggal:</span>
+            <span id="r-date">-</span>
+        </div>
+        <div class="flex justify-between text-sm mb-1">
+            <span>Pelanggan:</span>
+            <span id="r-name" class="font-bold">-</span>
+        </div>
+        <div class="flex justify-between text-sm mb-4">
+            <span>No HP:</span>
+            <span id="r-hp">-</span>
+        </div>
+        <div class="receipt-dashed"></div>
+        <div class="mb-4">
+            <div class="flex justify-between font-bold text-lg">
+                <span>TOTAL</span>
+                <span id="r-total">Rp 0</span>
+            </div>
+            <div class="text-xs mt-1 text-center">Pembayaran Internet Bulanan</div>
+        </div>
+        <div class="receipt-dashed"></div>
+        <div class="text-center text-sm mt-4" style="white-space: pre-line;" id="r-footer">
+            Terima kasih.
+        </div>
+    </div>
 
     <!-- ==================== LOGIN SCREEN ==================== -->
     <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
@@ -60,6 +107,9 @@
                     <h1 class="text-lg font-bold text-slate-800 hidden sm:block">NetManager</h1>
                 </div>
                 <div class="flex gap-2">
+                    <button onclick="openReceiptSettings()" class="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 hover:bg-purple-100 transition" title="Pengaturan Struk">
+                        <i class="fas fa-receipt"></i>
+                    </button>
                     <button onclick="openMessageSettings()" class="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-600 hover:bg-green-100 transition" title="Template Pesan WA">
                         <i class="fab fa-whatsapp"></i>
                     </button>
@@ -72,16 +122,14 @@
                 </div>
             </div>
             
-            <!-- Advanced Filter Bar -->
+            <!-- Filter Bar -->
             <div class="border-t border-slate-100 bg-slate-50 px-4 py-3">
                 <div class="container mx-auto flex flex-col sm:flex-row gap-3">
-                    <!-- Search -->
                     <div class="relative flex-1">
                         <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
                         <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Cari nama, alamat, no hp..." class="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     
-                    <!-- Filters -->
                     <div class="flex gap-2">
                         <select id="filterCategory" onchange="applySort()" class="text-sm border border-slate-200 bg-white py-2 px-3 rounded-lg text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer flex-1 sm:flex-none">
                             <option value="name">🔤 Nama</option>
@@ -89,10 +137,9 @@
                             <option value="installDate">🛠️ Tgl Pasang</option>
                             <option value="status">🔌 Status</option>
                         </select>
-                        
                         <select id="filterOrder" onchange="applySort()" class="text-sm border border-slate-200 bg-white py-2 px-3 rounded-lg text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
-                            <option value="asc">⬆️ Kecil-Besar (A-Z)</option>
-                            <option value="desc">⬇️ Besar-Kecil (Z-A)</option>
+                            <option value="asc">⬆️ Kecil-Besar</option>
+                            <option value="desc">⬇️ Besar-Kecil</option>
                         </select>
                     </div>
                 </div>
@@ -110,14 +157,10 @@
             <div id="customerList" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <!-- Cards injected here -->
             </div>
-
+            
             <!-- Empty State -->
             <div id="emptyState" class="hidden text-center py-12">
-                <div class="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-search text-3xl text-slate-400"></i>
-                </div>
                 <h3 class="text-lg font-semibold text-slate-600">Data tidak ditemukan</h3>
-                <p class="text-slate-400 text-sm">Coba kata kunci lain atau tambah pelanggan baru.</p>
             </div>
         </div>
 
@@ -127,24 +170,21 @@
         </button>
     </div>
 
-    <!-- ==================== MODAL FORM (ADD / EDIT) ==================== -->
+    <!-- ==================== CUSTOMER FORM MODAL ==================== -->
     <div id="formModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh] fade-in">
             <div class="flex justify-between items-center p-5 border-b border-gray-100">
                 <h2 id="modalTitle" class="text-lg font-bold text-slate-800">Tambah Pelanggan</h2>
                 <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"><i class="fas fa-times"></i></button>
             </div>
-            
             <div class="p-6 overflow-y-auto">
                 <form id="customerForm" class="space-y-4">
                     <input type="hidden" name="action" id="formAction" value="add">
                     <input type="hidden" name="uuid" id="formUuid">
-                    
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label>
                         <input type="text" name="Nama Customer" id="inpName" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
                     </div>
-                    
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">No HP</label>
@@ -155,12 +195,10 @@
                             <input type="number" name="Biaya Langganan" id="inpBiaya" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat</label>
                         <textarea name="Alamat" id="inpAlamat" rows="2" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"></textarea>
                     </div>
-
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tgl Pasang</label>
@@ -171,7 +209,6 @@
                             <input type="date" name="Tanggal Tagihan Next" id="inpTglTagihan" required class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status Pelanggan</label>
                         <select name="Status" id="inpStatus" class="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer">
@@ -179,12 +216,32 @@
                             <option value="Non-Aktif">⛔ Non-Aktif (Putus)</option>
                         </select>
                     </div>
-
-                    <button type="submit" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition mt-2 shadow-lg shadow-blue-500/30">
-                        Simpan Data
-                    </button>
+                    <button type="submit" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition mt-2 shadow-lg shadow-blue-500/30">Simpan Data</button>
                 </form>
             </div>
+        </div>
+    </div>
+
+    <!-- ==================== RECEIPT SETTINGS MODAL ==================== -->
+    <div id="receiptSettingsModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-receipt text-purple-500 mr-2"></i>Pengaturan Struk</h3>
+                <button onclick="closeReceiptSettings()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Atur Header (Nama Bisnis) dan Footer struk yang akan dikirim ke pelanggan.</p>
+            
+            <form id="receiptForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Header (Nama Bisnis, Alamat, dll)</label>
+                    <textarea id="receiptHeaderInput" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Contoh: &#10;NET MANAGER WIFI&#10;Jl. Mawar No. 12, Jakarta"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Footer (Ucapan Terima Kasih)</label>
+                    <textarea id="receiptFooterInput" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Terima kasih atas pembayaran Anda."></textarea>
+                </div>
+                <button type="submit" id="btnSaveReceipt" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-xl transition">Simpan Pengaturan</button>
+            </form>
         </div>
     </div>
 
@@ -195,16 +252,12 @@
                 <h3 class="text-lg font-bold text-slate-800"><i class="fab fa-whatsapp text-green-500 mr-2"></i>Template Pesan WA</h3>
                 <button onclick="closeMsgSettings()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
             </div>
-            <p class="text-sm text-slate-500 mb-3">Atur format pesan penagihan otomatis Anda di sini.</p>
-            
             <textarea id="waTemplateInput" rows="5" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none mb-3"></textarea>
-            
             <div class="flex flex-wrap gap-2 mb-4">
                 <button onclick="insertTag('[NAMA]')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded transition">+ Nama</button>
                 <button onclick="insertTag('[JUMLAH]')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded transition">+ Jumlah</button>
                 <button onclick="insertTag('[TEMPO]')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded transition">+ Jatuh Tempo</button>
             </div>
-
             <button onclick="saveWaTemplate()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl transition">Simpan Template</button>
         </div>
     </div>
@@ -212,11 +265,13 @@
     <!-- ==================== JAVASCRIPT LOGIC ==================== -->
     <script>
         // --- KONFIGURASI ---
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxWt0iu0bdtwodaI74zan1m_F-X43a1avPJURAV_w69oZQyKfLkE8GhPAf_qXtr49zLOg/exec'; 
+        const API_URL = 'GANTI_DENGAN_URL_APPS_SCRIPT_KAMU'; 
         
         // --- VARIABLES ---
         let customers = [];
         let userPassword = localStorage.getItem('app_password') || '';
+        let receiptHeader = "";
+        let receiptFooter = "";
         const defaultTemplate = "Halo Kak [NAMA],\n\nKami dari Layanan Internet.\nIni pengingat untuk tagihan bulan ini sebesar *[JUMLAH]*.\nJatuh tempo pada tanggal: *[TEMPO]*.\n\nMohon segera melakukan pembayaran ya kak. Terima kasih! 🙏";
 
         // --- INIT ---
@@ -276,6 +331,11 @@
             .then(res => res.json())
             .then(json => {
                 customers = json.data;
+                // Load Settings Struk dari Backend
+                if(json.settings) {
+                    receiptHeader = json.settings.receiptHeader;
+                    receiptFooter = json.settings.receiptFooter;
+                }
                 document.getElementById('loading').classList.add('hidden');
                 applySort(); 
             });
@@ -293,11 +353,9 @@
             empty.classList.add('hidden');
 
             data.forEach(cust => {
-                // Handling Status (Default Active if undefined)
                 const isActive = (cust['Status'] || 'Aktif') === 'Aktif';
                 const opacityClass = isActive ? '' : 'opacity-60 grayscale-[0.8]';
 
-                // Kalkulasi Jatuh Tempo
                 const nextBill = new Date(cust['Tanggal Tagihan Next']);
                 const today = new Date();
                 today.setHours(0,0,0,0);
@@ -320,13 +378,9 @@
                     statusText = "HARI INI";
                 }
 
-                // Kalkulasi Lama Langganan
                 const durationStr = calculateDuration(cust['Tanggal Pasang']);
-                
-                // Format Rupiah
                 const biaya = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(cust['Biaya Langganan']);
 
-                // Template Card
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition relative group overflow-hidden ${opacityClass}`;
                 card.innerHTML = `
@@ -374,12 +428,19 @@
                             </button>
                             `}
                             
+                            <!-- TOMBOL STRUK (UPDATED) -->
+                             ${isActive ? `
+                            <button onclick="sendReceipt('${cust['No HP']}', '${cust['Nama Customer']}', '${cust['Biaya Langganan']}')" class="col-span-1 bg-purple-50 text-purple-600 rounded-lg py-2 hover:bg-purple-600 hover:text-white transition flex flex-col items-center justify-center text-xs">
+                                <i class="fas fa-receipt text-lg mb-1"></i> <span class="text-[10px]">Struk</span>
+                            </button>
+                             ` : `
+                            <button disabled class="col-span-1 bg-gray-100 text-gray-400 rounded-lg py-2 flex flex-col items-center justify-center text-xs">
+                                <i class="fas fa-receipt text-lg mb-1"></i> <span class="text-[10px]">Struk</span>
+                            </button>
+                             `}
+
                             <button onclick='editCustomer(${JSON.stringify(cust)})' class="col-span-1 bg-blue-50 text-blue-600 rounded-lg py-2 hover:bg-blue-600 hover:text-white transition flex flex-col items-center justify-center text-xs">
                                 <i class="fas fa-edit text-lg mb-1"></i> <span class="text-[10px]">Edit</span>
-                            </button>
-
-                            <button onclick="deleteCustomer('${cust['UUID']}', '${cust['Nama Customer']}')" class="col-span-1 bg-red-50 text-red-500 rounded-lg py-2 hover:bg-red-500 hover:text-white transition flex flex-col items-center justify-center text-xs">
-                                <i class="fas fa-trash-alt text-lg mb-1"></i> <span class="text-[10px]">Hapus</span>
                             </button>
 
                             ${isActive ? `
@@ -391,10 +452,143 @@
                                 <i class="fas fa-check text-lg mb-1"></i> <span class="text-[10px]">Bayar</span>
                             </button>
                             `}
+                            
+                            <button onclick="deleteCustomer('${cust['UUID']}', '${cust['Nama Customer']}')" class="col-span-4 mt-1 bg-red-50 text-red-500 rounded-lg py-1 hover:bg-red-500 hover:text-white transition text-xs flex items-center justify-center gap-2">
+                                <i class="fas fa-trash-alt"></i> Hapus Pelanggan
+                            </button>
                         </div>
                     </div>
                 `;
                 container.appendChild(card);
+            });
+        }
+
+        // --- RECEIPT LOGIC (UPDATED WITH IMAGE GEN) ---
+        function openReceiptSettings() {
+            document.getElementById('receiptHeaderInput').value = receiptHeader;
+            document.getElementById('receiptFooterInput').value = receiptFooter;
+            document.getElementById('receiptSettingsModal').classList.remove('hidden');
+        }
+        
+        function closeReceiptSettings() {
+            document.getElementById('receiptSettingsModal').classList.add('hidden');
+        }
+
+        document.getElementById('receiptForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const header = document.getElementById('receiptHeaderInput').value;
+            const footer = document.getElementById('receiptFooterInput').value;
+            const btn = document.getElementById('btnSaveReceipt');
+            
+            btn.innerHTML = "Menyimpan...";
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('action', 'save_receipt_settings');
+            formData.append('passwordAuth', userPassword);
+            formData.append('header', header);
+            formData.append('footer', footer);
+
+            fetch(API_URL, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if(data.result === 'success') {
+                    receiptHeader = header;
+                    receiptFooter = footer;
+                    Swal.fire('Tersimpan', data.message, 'success');
+                    closeReceiptSettings();
+                } else Swal.fire('Gagal', data.message, 'error');
+            })
+            .catch(() => Swal.fire('Error', 'Gagal koneksi server', 'error'))
+            .finally(() => {
+                btn.innerHTML = "Simpan Pengaturan";
+                btn.disabled = false;
+            });
+        });
+
+        function sendReceipt(hp, nama, biaya) {
+            Swal.fire({
+                title: 'Kirim Struk',
+                text: 'Pilih format pengiriman struk:',
+                icon: 'info',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: '<i class="fas fa-image"></i> Download Gambar',
+                denyButtonText: '<i class="fab fa-whatsapp"></i> Kirim Teks WA',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#9333ea', // Purple
+                denyButtonColor: '#16a34a' // Green
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // GENERATE IMAGE & DOWNLOAD
+                    generateReceiptImage(nama, hp, biaya);
+                } else if (result.isDenied) {
+                    // SEND TEXT WA (OLD WAY)
+                    const biayaFmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(biaya);
+                    const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                    
+                    let text = `*STRUK PEMBAYARAN*\n\n${receiptHeader}\n\n`;
+                    text += `Tanggal: ${today}\n`;
+                    text += `Pelanggan: ${nama}\n`;
+                    text += `Nominal: ${biayaFmt}\n\n`;
+                    text += `${receiptFooter}`;
+
+                    let phone = hp.toString().replace(/\D/g, ''); 
+                    if(phone.startsWith('0')) phone = '62' + phone.slice(1);
+                    
+                    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+                }
+            });
+        }
+
+        function generateReceiptImage(nama, hp, biaya) {
+            // 1. Fill Hidden Template
+            const biayaFmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(biaya);
+            const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+
+            document.getElementById('r-header').innerText = receiptHeader || "STRUK PEMBAYARAN";
+            document.getElementById('r-date').innerText = today;
+            document.getElementById('r-name').innerText = nama;
+            document.getElementById('r-hp').innerText = hp;
+            document.getElementById('r-total').innerText = biayaFmt;
+            document.getElementById('r-footer').innerText = receiptFooter || "Terima Kasih";
+
+            // 2. Show Loading
+            Swal.fire({
+                title: 'Membuat Gambar...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            // 3. Generate Canvas
+            const receiptElement = document.getElementById('receipt-print-area');
+            
+            html2canvas(receiptElement, { scale: 2 }).then(canvas => {
+                // 4. Download
+                const link = document.createElement('a');
+                link.download = `Struk-${nama}-${Date.now()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                
+                Swal.close();
+
+                // 5. Prompt to WA
+                let phone = hp.toString().replace(/\D/g, ''); 
+                if(phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+                Swal.fire({
+                    title: 'Gambar Terdownload!',
+                    text: 'Silakan buka WhatsApp dan lampirkan gambar yang baru saja didownload.',
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonText: 'Buka WhatsApp',
+                    confirmButtonColor: '#25D366'
+                }).then((res) => {
+                    if(res.isConfirmed) {
+                        const caption = `Berikut adalah struk pembayaran Anda a.n ${nama}. Terima kasih.`;
+                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(caption)}`, '_blank');
+                    }
+                });
             });
         }
 
